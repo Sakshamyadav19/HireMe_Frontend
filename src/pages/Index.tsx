@@ -1,132 +1,208 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Briefcase, Rocket, Star, CheckCircle, FileText, Target, PartyPopper } from "lucide-react";
+import { Search, MapPin, Briefcase, Zap, TrendingUp, BookmarkCheck } from "lucide-react";
 
-const FloatingIcon = ({ children, className }: { children: React.ReactNode; className?: string }) => (
-  <div className={`absolute text-2xl opacity-20 select-none pointer-events-none ${className}`}>
+// Floating job card component
+const FloatingCard = ({
+  children,
+  className,
+  delay = "0s",
+  duration = "6s",
+}: {
+  children: React.ReactNode;
+  className?: string;
+  delay?: string;
+  duration?: string;
+}) => (
+  <div
+    className={`absolute bg-card rounded-2xl shadow-lg border border-border/50 backdrop-blur-sm px-4 py-3 ${className}`}
+    style={{
+      animation: `float-slow ${duration} ease-in-out ${delay} infinite`,
+    }}
+  >
     {children}
   </div>
 );
 
-const AnimatedCounter = ({ end, label, delay }: { end: string; label: string; delay: string }) => {
-  const [visible, setVisible] = useState(false);
-  useEffect(() => {
-    const ms = parseFloat(delay) * 1000;
-    const t = setTimeout(() => setVisible(true), ms);
-    return () => clearTimeout(t);
-  }, [delay]);
-
-  return (
-    <div
-      className="text-center transition-all duration-700"
-      style={{
-        opacity: visible ? 1 : 0,
-        transform: visible ? "scale(1)" : "scale(0.5)",
-      }}
-    >
-      <span className="text-2xl md:text-3xl font-900 font-extrabold gradient-text">{end}</span>
-      <p className="text-xs md:text-sm text-muted-foreground font-semibold mt-1">{label}</p>
-    </div>
-  );
-};
-
-const steps = [
-  { icon: FileText, title: "Upload Resume", emoji: "📄", color: "text-purple" },
-  { icon: Target, title: "Get Matched", emoji: "🎯", color: "text-teal" },
-  { icon: PartyPopper, title: "Land the Job", emoji: "🎉", color: "text-pink" },
-];
-
 const Index = () => {
   const [loaded, setLoaded] = useState(false);
   useEffect(() => {
-    const t = setTimeout(() => setLoaded(true), 100);
+    const t = setTimeout(() => setLoaded(true), 50);
     return () => clearTimeout(t);
   }, []);
 
   return (
-    <div className="h-screen w-full overflow-hidden flex flex-col relative bg-background">
-      {/* Floating background icons */}
-      <FloatingIcon className="top-[15%] left-[8%] floating-icon">
-        <Briefcase className="w-8 h-8 text-purple" />
-      </FloatingIcon>
-      <FloatingIcon className="top-[20%] right-[10%] floating-icon-delay-1">
-        <Rocket className="w-7 h-7 text-pink" />
-      </FloatingIcon>
-      <FloatingIcon className="bottom-[30%] left-[12%] floating-icon-delay-2">
-        <Star className="w-6 h-6 text-yellow" />
-      </FloatingIcon>
-      <FloatingIcon className="bottom-[25%] right-[8%] floating-icon-delay-3">
-        <CheckCircle className="w-7 h-7 text-teal" />
-      </FloatingIcon>
-      <FloatingIcon className="top-[40%] left-[3%] floating-icon-delay-3">
-        <Star className="w-5 h-5 text-pink" />
-      </FloatingIcon>
-      <FloatingIcon className="top-[10%] right-[30%] floating-icon-delay-2">
-        <Briefcase className="w-5 h-5 text-teal" />
-      </FloatingIcon>
+    <div className="h-screen w-full overflow-hidden flex flex-col relative">
+      {/* Gradient background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-[hsl(300,30%,95%)] via-[hsl(320,50%,88%)] to-[hsl(300,40%,85%)]" />
+
+      {/* Wavy lines at bottom */}
+      <svg
+        className="absolute bottom-0 left-0 w-[200%] opacity-20"
+        style={{ animation: "wave-drift 20s linear infinite" }}
+        height="200"
+        viewBox="0 0 2000 200"
+        fill="none"
+      >
+        <path d="M0 80 Q250 20 500 80 T1000 80 T1500 80 T2000 80" stroke="hsl(320,50%,65%)" strokeWidth="1.5" fill="none" />
+        <path d="M0 110 Q250 50 500 110 T1000 110 T1500 110 T2000 110" stroke="hsl(300,40%,60%)" strokeWidth="1" fill="none" />
+        <path d="M0 140 Q250 80 500 140 T1000 140 T1500 140 T2000 140" stroke="hsl(310,45%,70%)" strokeWidth="1.5" fill="none" />
+        <path d="M0 160 Q250 120 500 160 T1000 160 T1500 160 T2000 160" stroke="hsl(325,40%,75%)" strokeWidth="1" fill="none" />
+      </svg>
 
       {/* Nav */}
-      <nav className="flex items-center justify-between px-6 md:px-12 py-4 relative z-10">
-        <h1 className="text-xl md:text-2xl font-extrabold gradient-text tracking-tight">
-          JobMatch 🚀
-        </h1>
-        <Button className="bounce-hover rounded-full px-6 font-bold bg-primary text-primary-foreground shadow-lg">
-          Get Started
-        </Button>
+      <nav
+        className="relative z-20 flex items-center justify-between px-6 md:px-12 py-5"
+        style={{
+          opacity: loaded ? 1 : 0,
+          transform: loaded ? "translateY(0)" : "translateY(-10px)",
+          transition: "all 0.6s ease 0.1s",
+        }}
+      >
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[hsl(320,60%,70%)] to-[hsl(280,50%,60%)] flex items-center justify-center">
+            <Briefcase className="w-4 h-4 text-white" />
+          </div>
+          <span className="text-xl font-bold text-foreground tracking-tight">JobMatch</span>
+        </div>
+        <div className="hidden md:flex items-center gap-8 text-sm font-medium text-foreground/70">
+          <a href="#" className="hover:text-foreground transition-colors">Find a Job</a>
+          <a href="#" className="hover:text-foreground transition-colors">Companies</a>
+          <a href="#" className="hover:text-foreground transition-colors">How It Works</a>
+          <a href="#" className="hover:text-foreground transition-colors">Blog</a>
+        </div>
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" className="hidden sm:inline-flex text-sm font-medium">
+            Login
+          </Button>
+          <Button className="rounded-full px-6 text-sm font-semibold bg-primary text-primary-foreground hover:opacity-90 transition-opacity">
+            Sign Up
+          </Button>
+        </div>
       </nav>
 
-      {/* Hero */}
-      <main className="flex-1 flex flex-col items-center justify-center px-6 relative z-10 -mt-4">
+      {/* Main content area */}
+      <main className="relative z-10 flex-1 flex items-center justify-center px-6">
+        {/* Floating cards - LEFT side */}
+        <FloatingCard className="hidden lg:flex top-[8%] left-[6%] items-center gap-3" delay="0s" duration="7s">
+          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[hsl(145,50%,60%)] to-[hsl(160,40%,50%)] flex items-center justify-center">
+            <TrendingUp className="w-4 h-4 text-white" />
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-foreground">Customer Success</p>
+            <p className="text-sm font-bold text-foreground">7.89% <span className="text-[10px] bg-[hsl(0,70%,60%)] text-white px-1.5 py-0.5 rounded-full font-medium">HOT</span></p>
+          </div>
+        </FloatingCard>
+
+        <FloatingCard className="hidden lg:flex top-[30%] left-[4%] flex-col gap-2 max-w-[220px]" delay="1s" duration="8s">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-full bg-[hsl(145,60%,90%)] flex items-center justify-center">
+              <span className="text-sm">🎵</span>
+            </div>
+            <div>
+              <p className="text-xs font-bold text-foreground">Product Designer</p>
+              <p className="text-[10px] text-muted-foreground">Spotify · <span className="text-blue-500">✓</span></p>
+            </div>
+            <BookmarkCheck className="w-4 h-4 text-accent ml-auto" />
+          </div>
+          <div className="flex gap-1.5">
+            <span className="text-[10px] bg-secondary px-2 py-0.5 rounded-full text-muted-foreground font-medium">Full Time</span>
+            <span className="text-[10px] bg-secondary px-2 py-0.5 rounded-full text-muted-foreground font-medium">Remote</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] text-muted-foreground flex items-center gap-1"><MapPin className="w-3 h-3" /> New York</p>
+            <p className="text-sm font-bold text-foreground">$152K<span className="text-[10px] font-normal text-muted-foreground">/month</span></p>
+          </div>
+        </FloatingCard>
+
+        <FloatingCard className="hidden lg:flex bottom-[18%] left-[5%] items-center gap-2" delay="2s" duration="6s">
+          <div className="w-8 h-8 rounded-lg bg-[hsl(280,40%,90%)] flex items-center justify-center">
+            <span className="text-sm">🎨</span>
+          </div>
+          <div>
+            <p className="text-xs font-bold text-foreground">Product Design Manager</p>
+            <p className="text-[10px] text-muted-foreground">Figma · Full Time</p>
+          </div>
+        </FloatingCard>
+
+        {/* Floating cards - RIGHT side */}
+        <FloatingCard className="hidden lg:flex top-[6%] right-[8%] items-center gap-2" delay="0.5s" duration="7s">
+          <div className="w-8 h-8 rounded-full bg-[hsl(180,40%,90%)] flex items-center justify-center">
+            <span className="text-sm">⚡</span>
+          </div>
+          <div>
+            <p className="text-xs font-bold text-foreground">Design Engineer</p>
+            <p className="text-[10px] text-muted-foreground">ChatGPT · Remote</p>
+          </div>
+        </FloatingCard>
+
+        <FloatingCard className="hidden lg:flex top-[22%] right-[5%] flex-col gap-2 max-w-[200px] p-4" delay="1.5s" duration="8s">
+          <p className="text-xs font-bold text-foreground">Top Job Categories</p>
+          <div className="flex gap-1 items-end h-12">
+            <div className="flex-1 bg-[hsl(30,60%,85%)] rounded-t-md h-[65%]" />
+            <div className="flex-1 bg-[hsl(300,40%,85%)] rounded-t-md h-[79%]" />
+            <div className="flex-1 bg-[hsl(320,50%,80%)] rounded-t-md h-[48%]" />
+            <div className="flex-1 bg-gradient-to-t from-[hsl(320,60%,70%)] to-[hsl(280,50%,70%)] rounded-t-md h-[93%]" />
+          </div>
+          <div className="flex justify-between">
+            <span className="text-[8px] text-muted-foreground">Product</span>
+            <span className="text-[8px] text-muted-foreground">Content</span>
+            <span className="text-[8px] text-muted-foreground">Finance</span>
+            <span className="text-[8px] text-muted-foreground">Design</span>
+          </div>
+        </FloatingCard>
+
+        <FloatingCard className="hidden lg:flex bottom-[16%] right-[6%] items-center gap-3" delay="0.8s" duration="6.5s">
+          <div className="w-9 h-9 rounded-full bg-[hsl(45,90%,65%)] flex items-center justify-center">
+            <Zap className="w-4 h-4 text-white" />
+          </div>
+          <div>
+            <p className="text-lg font-bold text-foreground">80%</p>
+            <p className="text-[10px] text-muted-foreground">More Efficient</p>
+          </div>
+        </FloatingCard>
+
+        {/* Center Hero */}
         <div
-          className="text-center max-w-2xl transition-all duration-700"
+          className="text-center max-w-2xl"
           style={{
             opacity: loaded ? 1 : 0,
             transform: loaded ? "translateY(0)" : "translateY(30px)",
+            transition: "all 0.8s ease 0.2s",
           }}
         >
-          <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold leading-tight gradient-text mb-4">
-            Upload Your Resume.
+          <h1 className="font-serif text-4xl sm:text-5xl md:text-6xl lg:text-7xl leading-[1.1] text-foreground mb-5">
+            Modernizing the
             <br />
-            Land Your Dream Job. 🚀
-          </h2>
-          <p className="text-base md:text-lg text-muted-foreground font-semibold max-w-lg mx-auto mb-8">
-            We match you with jobs that actually fit — no endless scrolling required.
+            Job Search Experience
+          </h1>
+          <p className="text-sm md:text-base text-muted-foreground max-w-md mx-auto mb-8 leading-relaxed">
+            Upload your resume and find your dream job easier than ever. We match you with roles that actually fit — no endless scrolling required.
           </p>
-          <Button
-            size="lg"
-            className="pulse-cta bounce-hover rounded-full px-10 py-6 text-lg font-extrabold bg-primary text-primary-foreground shadow-xl"
-          >
-            Get Started ✨
-          </Button>
-        </div>
 
-        {/* 3-Step Cards */}
-        <div className="flex flex-col sm:flex-row gap-4 md:gap-6 mt-10 md:mt-14">
-          {steps.map((step, i) => (
-            <div
-              key={step.title}
-              className="bg-card border border-border rounded-2xl px-6 py-5 text-center shadow-md hover:scale-105 transition-transform duration-300 cursor-default"
-              style={{
-                opacity: loaded ? 1 : 0,
-                transform: loaded ? "translateY(0)" : "translateY(20px)",
-                transition: `all 0.6s ease ${0.3 + i * 0.2}s`,
-              }}
-            >
-              <div className="text-3xl mb-2">{step.emoji}</div>
-              <p className={`font-bold text-sm md:text-base ${step.color}`}>{step.title}</p>
+          {/* Search bar */}
+          <div
+            className="flex items-center bg-card rounded-full shadow-lg border border-border/50 max-w-md mx-auto overflow-hidden"
+            style={{
+              opacity: loaded ? 1 : 0,
+              transform: loaded ? "translateY(0)" : "translateY(15px)",
+              transition: "all 0.7s ease 0.5s",
+            }}
+          >
+            <div className="flex items-center gap-2 flex-1 px-5 py-3">
+              <Search className="w-4 h-4 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder="Upload resume or search for a job..."
+                className="bg-transparent text-sm outline-none w-full placeholder:text-muted-foreground/60"
+              />
             </div>
-          ))}
+            <Button className="rounded-full m-1.5 px-6 text-sm font-semibold bg-primary text-primary-foreground hover:opacity-90">
+              Get Started
+            </Button>
+          </div>
         </div>
       </main>
-
-      {/* Stats Strip */}
-      <footer className="flex items-center justify-center gap-8 md:gap-16 px-6 py-5 relative z-10">
-        <AnimatedCounter end="10K+" label="Jobs" delay="0.8" />
-        <div className="w-px h-8 bg-border" />
-        <AnimatedCounter end="5K+" label="Companies" delay="1.0" />
-        <div className="w-px h-8 bg-border" />
-        <AnimatedCounter end="50K+" label="Matched" delay="1.2" />
-      </footer>
     </div>
   );
 };
