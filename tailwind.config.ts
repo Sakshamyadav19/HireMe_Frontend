@@ -8,13 +8,12 @@ export default {
     container: {
       center: true,
       padding: "2rem",
-      screens: {
-        "2xl": "1400px",
-      },
+      screens: { "2xl": "1400px" },
     },
     extend: {
       fontFamily: {
-        sans: ["Nunito", "sans-serif"],
+        sans: ["Inter", "sans-serif"],
+        serif: ["DM Serif Display", "serif"],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -50,10 +49,6 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        teal: "hsl(var(--teal))",
-        pink: "hsl(var(--pink))",
-        yellow: "hsl(var(--yellow))",
-        purple: "hsl(var(--purple))",
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",
