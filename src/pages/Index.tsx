@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Search, MapPin, Briefcase, Zap, TrendingUp, BookmarkCheck } from "lucide-react";
 
@@ -25,11 +27,18 @@ const FloatingCard = ({
 );
 
 const Index = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const [loaded, setLoaded] = useState(false);
   useEffect(() => {
     const t = setTimeout(() => setLoaded(true), 50);
     return () => clearTimeout(t);
   }, []);
+
+  const handleGetStarted = () => {
+    if (user) navigate("/home");
+    else navigate("/signup");
+  };
 
   return (
     <div className="h-screen w-full overflow-hidden flex flex-col relative">
@@ -72,10 +81,10 @@ const Index = () => {
           <a href="#" className="hover:text-foreground transition-colors">Blog</a>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="ghost" className="hidden sm:inline-flex text-sm font-medium">
+          <Button variant="ghost" className="hidden sm:inline-flex text-sm font-medium" onClick={() => navigate("/login")}>
             Login
           </Button>
-          <Button className="rounded-full px-6 text-sm font-semibold bg-primary text-primary-foreground hover:opacity-90 transition-opacity">
+          <Button className="rounded-full px-6 text-sm font-semibold bg-primary text-primary-foreground hover:opacity-90 transition-opacity" onClick={() => navigate("/signup")}>
             Sign Up
           </Button>
         </div>
@@ -197,8 +206,11 @@ const Index = () => {
                 className="bg-transparent text-sm outline-none w-full placeholder:text-muted-foreground/60"
               />
             </div>
-            <Button className="rounded-full m-1.5 px-6 text-sm font-semibold bg-primary text-primary-foreground hover:opacity-90">
-              Get Started
+            <Button
+              className="rounded-full m-1.5 px-6 text-sm font-semibold bg-primary text-primary-foreground hover:opacity-90"
+              onClick={handleGetStarted}
+            >
+              {user ? "Upload resume" : "Get Started"}
             </Button>
           </div>
         </div>
