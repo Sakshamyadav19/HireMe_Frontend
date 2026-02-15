@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { DollarSign, Heart, Clock } from "lucide-react";
@@ -40,10 +41,11 @@ export function JobCard({ job, matchScore, skillsMatched, skillsRequired, isSave
   const experienceClass = JOB_TAG_COLORS[experienceLevel] ?? "bg-muted text-muted-foreground";
   const jobTypeClass = JOB_TAG_COLORS[jobTypeTag] ?? "bg-muted text-muted-foreground";
   const initial = (job.company_name || "C")[0].toUpperCase();
+  const [glow, setGlow] = useState(false);
 
   return (
-    <Card className={`rounded-xl border border-border bg-card shadow-sm overflow-hidden ${className}`}>
-      <CardContent className="p-4 flex flex-col h-full">
+    <Card className={`rounded-xl border border-border bg-card shadow-sm overflow-hidden min-h-[200px] ${className}`}>
+      <CardContent className="p-5 flex flex-col h-full">
         <div className="flex items-start justify-between gap-2 mb-3">
           <div className="flex items-start gap-3 min-w-0">
             <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center shrink-0 text-sm font-semibold text-muted-foreground">
@@ -69,11 +71,15 @@ export function JobCard({ job, matchScore, skillsMatched, skillsRequired, isSave
                 aria-label={isSaved ? "Unsave job" : "Save job"}
                 onClick={(e) => {
                   e.stopPropagation();
+                  setGlow(true);
                   onSaveToggle();
+                  setTimeout(() => setGlow(false), 500);
                 }}
               >
                 <Heart
-                  className={`w-4 h-4 ${isSaved ? "fill-current text-primary" : ""}`}
+                  className={`w-4 h-4 transition-colors duration-200 ${
+                    isSaved ? "fill-current text-primary" : ""
+                  } ${glow ? "animate-heart-pop" : ""}`}
                 />
               </button>
             )}

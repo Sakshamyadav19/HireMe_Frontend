@@ -112,6 +112,20 @@
   100% { background-position: 200% center; }
 }
 
+@keyframes heart-pop {
+  0% { transform: scale(1); }
+  15% { transform: scale(1.35); }
+  30% { transform: scale(0.9); }
+  45% { transform: scale(1.2); }
+  60% { transform: scale(0.95); }
+  75% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+.animate-heart-pop {
+  animation: heart-pop 0.5s ease-in-out;
+}
+
 @layer utilities {
   .scrollbar-hide {
     -ms-overflow-style: none;

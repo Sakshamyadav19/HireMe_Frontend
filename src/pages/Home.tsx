@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
-import { useVirtualizer } from "@tanstack/react-virtual";
+import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader2, Briefcase } from "lucide-react";
+import { Loader2, Briefcase, ArrowUp } from "lucide-react";
 import { jobsApi, savedJobsApi, type JobResponse, type JobListCursorResponse } from "@/lib/api";
 import { LRUCache } from "@/utils/lruCache";
 import { JobCard } from "@/components/JobCard";
@@ -12,8 +12,8 @@ import { JobDetailPanel } from "@/components/JobDetailPanel";
 const WINDOW_MAX_ITEMS = 500;
 const PAGE_CACHE_MAX_PAGES = 20;
 const PAGE_SIZE = 50;
-const ESTIMATED_ROW_HEIGHT = 280;
-const SCROLL_LOAD_THRESHOLD = 300;
+const ESTIMATED_ROW_HEIGHT = 240;
+const SCROLL_LOAD_THRESHOLD = 600;
 
 function buildPrevCursor(job: JobResponse): string {
   return `${job.created_at},${job.id}`;
@@ -31,6 +31,7 @@ export default function Home() {
   const [hasReachedEnd, setHasReachedEnd] = useState(false);
   const [hasReachedStart, setHasReachedStart] = useState(false);
   const [selectedJob, setSelectedJob] = useState<JobResponse | null>(null);
+  const [showScrollTop, setShowScrollTop] = useState(false);
 
   const { data: savedData } = useQuery({
     queryKey: ["saved-jobs"],
@@ -55,18 +56,21 @@ export default function Home() {
     [savedIds, addSaved, removeSaved]
   );
 
-  const parentRef = useRef<HTMLDivElement>(null);
   const pageCacheRef = useRef(new LRUCache<string, JobListCursorResponse>(PAGE_CACHE_MAX_PAGES));
+  const listRef = useRef<HTMLDivElement>(null);
 
   const panelOpen = selectedJob != null;
   const COLS = panelOpen ? 2 : 3;
   const rowCount = Math.ceil(items.length / COLS);
-  const virtualizer = useVirtualizer({
+
+  const virtualizer = useWindowVirtualizer({
     count: rowCount,
-    getScrollElement: () => parentRef.current,
     estimateSize: () => ESTIMATED_ROW_HEIGHT,
-    overscan: 2,
+    overscan: 3,
+    scrollMargin: listRef.current?.offsetTop ?? 0,
   });
+
+  // ── Data loading ──
 
   const loadNext = useCallback(async () => {
     if (loadingNext || hasReachedEnd || !nextCursor) return;
@@ -108,9 +112,7 @@ export default function Home() {
       });
       const rowsPrepended = Math.ceil(cached.jobs.length / COLS);
       requestAnimationFrame(() => {
-        if (parentRef.current) {
-          parentRef.current.scrollTop += rowsPrepended * ESTIMATED_ROW_HEIGHT;
-        }
+        window.scrollBy(0, rowsPrepended * ESTIMATED_ROW_HEIGHT);
       });
       return;
     }
@@ -132,17 +134,16 @@ export default function Home() {
       });
       const rowsPrepended = Math.ceil(prepended / COLS);
       requestAnimationFrame(() => {
-        if (parentRef.current) {
-          parentRef.current.scrollTop += rowsPrepended * ESTIMATED_ROW_HEIGHT;
-        }
+        window.scrollBy(0, rowsPrepended * ESTIMATED_ROW_HEIGHT);
       });
     } catch {
       // ignore
     } finally {
       setLoadingPrev(false);
     }
-  }, [items, loadingPrev, hasReachedStart]);
+  }, [items, loadingPrev, hasReachedStart, COLS]);
 
+  // Initial load
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
@@ -170,23 +171,30 @@ export default function Home() {
     };
   }, []);
 
-  const handleScroll = useCallback(() => {
-    const el = parentRef.current;
-    if (!el || items.length === 0) return;
-    const { scrollTop, clientHeight, scrollHeight } = el;
-    if (scrollTop + clientHeight >= scrollHeight - SCROLL_LOAD_THRESHOLD) {
+  // ── Window scroll: infinite scroll + scroll-to-top visibility ──
+
+  const handleWindowScroll = useCallback(() => {
+    if (items.length === 0) return;
+    const { scrollY, innerHeight } = window;
+    const docHeight = document.documentElement.scrollHeight;
+    setShowScrollTop(scrollY > 300);
+    if (scrollY + innerHeight >= docHeight - SCROLL_LOAD_THRESHOLD) {
       loadNext();
-    } else if (scrollTop < SCROLL_LOAD_THRESHOLD) {
+    } else if (scrollY < SCROLL_LOAD_THRESHOLD) {
       loadPrev();
     }
   }, [items.length, loadNext, loadPrev]);
 
   useEffect(() => {
-    const el = parentRef.current;
-    if (!el) return;
-    el.addEventListener("scroll", handleScroll, { passive: true });
-    return () => el.removeEventListener("scroll", handleScroll);
-  }, [handleScroll]);
+    window.addEventListener("scroll", handleWindowScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleWindowScroll);
+  }, [handleWindowScroll]);
+
+  const scrollToTop = useCallback(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, []);
+
+  const virtualItems = virtualizer.getVirtualItems();
 
   return (
     <main className="max-w-[90rem] mx-auto px-6 py-10 w-full">
@@ -219,34 +227,37 @@ export default function Home() {
               <Loader2 className="w-4 h-4 animate-spin" />
             </div>
           )}
-          <div className="flex h-[70vh] min-h-0 w-full">
-            <JobDetailPanel
-              open={panelOpen}
-              job={selectedJob}
-              onClose={() => setSelectedJob(null)}
-            />
-            <div
-              ref={parentRef}
-              className="flex-1 min-w-0 overflow-auto scrollbar-hide rounded-xl border border-border"
-              style={{ height: "70vh" }}
-            >
+          <div className="flex w-full gap-4">
+            {/* Sticky detail panel */}
+            {panelOpen && (
+              <div className="sticky top-[73px] self-start h-[calc(100vh-73px)] shrink-0">
+                <JobDetailPanel
+                  open={panelOpen}
+                  job={selectedJob}
+                  onClose={() => setSelectedJob(null)}
+                />
+              </div>
+            )}
+            {/* Virtualised job grid — rendered in normal document flow */}
+            <div className="flex-1 min-w-0">
               <div
+                ref={listRef}
                 style={{
                   height: `${virtualizer.getTotalSize()}px`,
                   width: "100%",
                   position: "relative",
                 }}
               >
-                {virtualizer.getVirtualItems().map((virtualRow) => {
+                {virtualItems.map((virtualRow) => {
                   const startIdx = virtualRow.index * COLS;
                   return (
                     <div
                       key={virtualRow.index}
-                      className={`grid gap-4 absolute left-0 w-full px-1 ${COLS === 2 ? "grid-cols-2" : "grid-cols-3"}`}
+                      className={`grid gap-2 absolute left-0 w-full px-1 ${COLS === 2 ? "grid-cols-2" : "grid-cols-3"}`}
                       style={{
                         top: 0,
-                        transform: `translateY(${virtualRow.start}px)`,
-                        paddingBottom: "0.5rem",
+                        transform: `translateY(${virtualRow.start - virtualizer.options.scrollMargin}px)`,
+                        paddingBottom: "0.25rem",
                       }}
                     >
                       {Array.from({ length: COLS }, (_, col) => {
@@ -290,6 +301,18 @@ export default function Home() {
           )}
         </section>
       )}
+
+      {/* Scroll to top button */}
+      <button
+        type="button"
+        onClick={scrollToTop}
+        aria-label="Scroll to top"
+        className={`fixed bottom-6 right-6 z-50 w-10 h-10 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center transition-all duration-300 hover:scale-110 ${
+          showScrollTop ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none"
+        }`}
+      >
+        <ArrowUp className="w-5 h-5" />
+      </button>
     </main>
   );
 }
