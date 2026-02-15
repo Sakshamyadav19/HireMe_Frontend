@@ -14,6 +14,7 @@ const PAGE_CACHE_MAX_PAGES = 20;
 const PAGE_SIZE = 50;
 const ESTIMATED_ROW_HEIGHT = 240;
 const SCROLL_LOAD_THRESHOLD = 600;
+const JOBS_LIST_STALE_MS = 5 * 60 * 1000; // 5 min — cache so returning to Home doesn't refetch
 
 function buildPrevCursor(job: JobResponse): string {
   return `${job.created_at},${job.id}`;
@@ -24,10 +25,8 @@ export default function Home() {
   const queryClient = useQueryClient();
   const [items, setItems] = useState<JobResponse[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
   const [loadingNext, setLoadingNext] = useState(false);
   const [loadingPrev, setLoadingPrev] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [hasReachedEnd, setHasReachedEnd] = useState(false);
   const [hasReachedStart, setHasReachedStart] = useState(false);
   const [selectedJob, setSelectedJob] = useState<JobResponse | null>(null);
@@ -38,6 +37,18 @@ export default function Home() {
     queryFn: () => savedJobsApi.list(),
   });
   const savedIds = new Set(savedData?.jobs?.map((j) => j.id) ?? []);
+
+  const {
+    data: jobsListData,
+    isLoading: jobsListLoading,
+    error: jobsListError,
+  } = useQuery({
+    queryKey: ["jobs", "list"],
+    queryFn: () => jobsApi.listJobsCursor({ limit: PAGE_SIZE }),
+    staleTime: JOBS_LIST_STALE_MS,
+  });
+  const loading = jobsListLoading;
+  const error = jobsListError ? (jobsListError instanceof Error ? jobsListError.message : "Failed to load jobs.") : null;
 
   const addSaved = useMutation({
     mutationFn: (jobId: string) => savedJobsApi.add(jobId),
@@ -61,7 +72,8 @@ export default function Home() {
 
   const panelOpen = selectedJob != null;
   const COLS = panelOpen ? 2 : 3;
-  const rowCount = Math.ceil(items.length / COLS);
+  const displayItems = items.length > 0 ? items : (jobsListData?.jobs ?? []);
+  const rowCount = Math.ceil(displayItems.length / COLS);
 
   const virtualizer = useWindowVirtualizer({
     count: rowCount,
@@ -143,38 +155,21 @@ export default function Home() {
     }
   }, [items, loadingPrev, hasReachedStart, COLS]);
 
-  // Initial load
+  // Sync first page from React Query cache into local state when we have no items yet
   useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-    jobsApi
-      .listJobsCursor({ limit: PAGE_SIZE })
-      .then((res) => {
-        if (!cancelled) {
-          setItems(res.jobs);
-          setNextCursor(res.next_cursor);
-          setHasReachedEnd(!res.next_cursor);
-          if (res.jobs.length > 0) {
-            pageCacheRef.current.set("initial", res);
-          }
-        }
-      })
-      .catch((err) => {
-        if (!cancelled) setError(err?.message ?? "Failed to load jobs.");
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    if (!jobsListData || items.length > 0) return;
+    setItems(jobsListData.jobs);
+    setNextCursor(jobsListData.next_cursor);
+    setHasReachedEnd(!jobsListData.next_cursor);
+    if (jobsListData.jobs.length > 0) {
+      pageCacheRef.current.set("initial", jobsListData);
+    }
+  }, [jobsListData, items.length]);
 
   // ── Window scroll: infinite scroll + scroll-to-top visibility ──
 
   const handleWindowScroll = useCallback(() => {
-    if (items.length === 0) return;
+    if (displayItems.length === 0) return;
     const { scrollY, innerHeight } = window;
     const docHeight = document.documentElement.scrollHeight;
     setShowScrollTop(scrollY > 300);
@@ -183,7 +178,7 @@ export default function Home() {
     } else if (scrollY < SCROLL_LOAD_THRESHOLD) {
       loadPrev();
     }
-  }, [items.length, loadNext, loadPrev]);
+  }, [displayItems.length, loadNext, loadPrev]);
 
   useEffect(() => {
     window.addEventListener("scroll", handleWindowScroll, { passive: true });
@@ -212,7 +207,7 @@ export default function Home() {
         <Card className="rounded-2xl border-destructive/30">
           <CardContent className="py-10 text-center text-destructive">{error}</CardContent>
         </Card>
-      ) : items.length === 0 ? (
+      ) : displayItems.length === 0 ? (
         <Card className="rounded-2xl">
           <CardContent className="py-16 text-center text-muted-foreground">
             <Briefcase className="w-12 h-12 mx-auto mb-4 opacity-50" />
@@ -261,7 +256,7 @@ export default function Home() {
                       }}
                     >
                       {Array.from({ length: COLS }, (_, col) => {
-                        const job = items[startIdx + col];
+                        const job = displayItems[startIdx + col];
                         if (!job) return <div key={col} />;
                         return (
                           <div
@@ -296,7 +291,7 @@ export default function Home() {
               <Loader2 className="w-4 h-4 animate-spin" />
             </div>
           )}
-          {hasReachedEnd && items.length > 0 && (
+          {hasReachedEnd && displayItems.length > 0 && (
             <p className="text-center text-sm text-muted-foreground py-4">You&apos;ve reached the end of results.</p>
           )}
         </section>
