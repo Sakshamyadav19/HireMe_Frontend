@@ -1,5 +1,8 @@
 {
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "https://gtpjyqwyr8.us-east-2.awsapprunner.com/" }
+    {
+      "source": "/api/(.*)",
+      "destination": "https://gtpjyqwyr8.us-east-2.awsapprunner.com/api/$1"
+    }
   ]
 }
