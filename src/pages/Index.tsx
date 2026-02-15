@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { Search, MapPin, Briefcase, Zap, TrendingUp, BookmarkCheck } from "lucide-react";
+import { MapPin, Briefcase, Zap, TrendingUp, BookmarkCheck } from "lucide-react";
 
 // Floating job card component
 const FloatingCard = ({
@@ -189,30 +189,18 @@ const Index = () => {
             Upload your resume and find your dream job easier than ever. We match you with roles that actually fit — no endless scrolling required.
           </p>
 
-          {/* Search bar */}
-          <div
-            className="flex items-center bg-card rounded-full shadow-lg border border-border/50 max-w-md mx-auto overflow-hidden"
+          <Button
+            size="lg"
+            className="rounded-full px-10 py-6 text-base font-semibold bg-primary text-primary-foreground hover:opacity-90 shadow-lg transition-all hover:scale-105"
             style={{
               opacity: loaded ? 1 : 0,
               transform: loaded ? "translateY(0)" : "translateY(15px)",
               transition: "all 0.7s ease 0.5s",
             }}
+            onClick={handleGetStarted}
           >
-            <div className="flex items-center gap-2 flex-1 px-5 py-3">
-              <Search className="w-4 h-4 text-muted-foreground" />
-              <input
-                type="text"
-                placeholder="Upload resume or search for a job..."
-                className="bg-transparent text-sm outline-none w-full placeholder:text-muted-foreground/60"
-              />
-            </div>
-            <Button
-              className="rounded-full m-1.5 px-6 text-sm font-semibold bg-primary text-primary-foreground hover:opacity-90"
-              onClick={handleGetStarted}
-            >
-              {user ? "Upload resume" : "Get Started"}
-            </Button>
-          </div>
+            {user ? "Upload resume" : "Get Started"}
+          </Button>
         </div>
       </main>
     </div>
