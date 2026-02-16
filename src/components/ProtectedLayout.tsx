@@ -32,7 +32,7 @@ export default function ProtectedLayout() {
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[hsl(320,60%,70%)] to-[hsl(280,50%,60%)] flex items-center justify-center">
               <Briefcase className="w-4 h-4 text-white" />
             </div>
-            <span className="text-xl font-bold tracking-tight">JobMatch</span>
+            <span className="text-xl font-bold tracking-tight">HireMe</span>
           </Link>
           <Link
             to="/home"
