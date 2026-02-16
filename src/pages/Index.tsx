@@ -72,7 +72,7 @@ const Index = () => {
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[hsl(320,60%,70%)] to-[hsl(280,50%,60%)] flex items-center justify-center">
             <Briefcase className="w-4 h-4 text-white" />
           </div>
-          <span className="text-xl font-bold text-foreground tracking-tight">JobMatch</span>
+          <span className="text-xl font-bold text-foreground tracking-tight">HireMe</span>
         </div>
         <div className="hidden md:flex items-center gap-8 text-sm font-medium text-foreground/70">
           <a href="#" className="hover:text-foreground transition-colors">Find a Job</a>
