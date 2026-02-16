@@ -1,6 +1,7 @@
 import { Outlet, Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { MatchResultsProvider } from "@/contexts/MatchResultsContext";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { Button } from "@/components/ui/button";
 import { Briefcase, LogOut } from "lucide-react";
 
@@ -61,7 +62,9 @@ export default function ProtectedLayout() {
         </div>
       </nav>
       <MatchResultsProvider>
-        <Outlet />
+        <ErrorBoundary>
+          <Outlet />
+        </ErrorBoundary>
       </MatchResultsProvider>
     </div>
   );

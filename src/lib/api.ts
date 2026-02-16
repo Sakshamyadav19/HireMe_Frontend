@@ -202,12 +202,14 @@ export const jobsApi = {
     dir?: "next" | "prev";
     limit?: number;
     domain?: string;
+    country?: string;
   }): Promise<JobListCursorResponse> {
     const search = new URLSearchParams();
     if (params?.cursor) search.set("cursor", params.cursor);
     if (params?.dir) search.set("dir", params.dir);
     if (params?.limit != null) search.set("limit", String(params.limit));
     if (params?.domain) search.set("domain", params.domain);
+    if (params?.country) search.set("country", params.country);
     const qs = search.toString();
     return request<JobListCursorResponse>(`/api/jobs${qs ? `?${qs}` : ""}`);
   },

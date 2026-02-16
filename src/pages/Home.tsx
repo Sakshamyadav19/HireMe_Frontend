@@ -3,6 +3,13 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Loader2, Briefcase, ArrowUp } from "lucide-react";
 import { jobsApi, savedJobsApi, type JobResponse, type JobListCursorResponse } from "@/lib/api";
 import { LRUCache } from "@/utils/lruCache";
@@ -15,6 +22,33 @@ const PAGE_SIZE = 50;
 const ESTIMATED_ROW_HEIGHT = 240;
 const SCROLL_LOAD_THRESHOLD = 600;
 const JOBS_LIST_STALE_MS = 5 * 60 * 1000; // 5 min — cache so returning to Home doesn't refetch
+
+const DOMAIN_OPTIONS = [
+  "Engineering",
+  "Finance",
+  "Healthcare",
+  "Design",
+  "Legal",
+  "Sales & Marketing",
+] as const;
+
+const ALL_DOMAINS_VALUE = "__all__";
+const ALL_COUNTRIES_VALUE = "__all__";
+
+const COUNTRY_OPTIONS: { value: string; label: string }[] = [
+  { value: "USA", label: "United States" },
+  { value: "IND", label: "India" },
+  { value: "GBR", label: "United Kingdom" },
+  { value: "CAN", label: "Canada" },
+  { value: "AUS", label: "Australia" },
+  { value: "FRA", label: "France" },
+  { value: "DEU", label: "Germany" },
+  { value: "NLD", label: "Netherlands" },
+  { value: "CHE", label: "Switzerland" },
+  { value: "ARE", label: "UAE" },
+  { value: "HKG", label: "Hong Kong" },
+  { value: "ISR", label: "Israel" },
+];
 
 function buildPrevCursor(job: JobResponse): string {
   return `${job.created_at},${job.id}`;
@@ -31,6 +65,10 @@ export default function Home() {
   const [hasReachedStart, setHasReachedStart] = useState(false);
   const [selectedJob, setSelectedJob] = useState<JobResponse | null>(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
+  const [domainFilter, setDomainFilter] = useState<string | null>(null);
+  const [countryFilter, setCountryFilter] = useState<string | null>(null);
+  const domainParam = domainFilter === ALL_DOMAINS_VALUE || !domainFilter ? undefined : domainFilter;
+  const countryParam = countryFilter === ALL_COUNTRIES_VALUE || !countryFilter ? undefined : countryFilter;
 
   const { data: savedData } = useQuery({
     queryKey: ["saved-jobs"],
@@ -43,8 +81,13 @@ export default function Home() {
     isLoading: jobsListLoading,
     error: jobsListError,
   } = useQuery({
-    queryKey: ["jobs", "list"],
-    queryFn: () => jobsApi.listJobsCursor({ limit: PAGE_SIZE }),
+    queryKey: ["jobs", "list", { domain: domainParam ?? null, country: countryParam ?? null }],
+    queryFn: () =>
+      jobsApi.listJobsCursor({
+        limit: PAGE_SIZE,
+        domain: domainParam,
+        country: countryParam,
+      }),
     staleTime: JOBS_LIST_STALE_MS,
   });
   const loading = jobsListLoading;
@@ -88,7 +131,13 @@ export default function Home() {
     if (loadingNext || hasReachedEnd || !nextCursor) return;
     setLoadingNext(true);
     try {
-      const res = await jobsApi.listJobsCursor({ cursor: nextCursor, dir: "next", limit: PAGE_SIZE });
+      const res = await jobsApi.listJobsCursor({
+        cursor: nextCursor,
+        dir: "next",
+        limit: PAGE_SIZE,
+        domain: domainParam,
+        country: countryParam,
+      });
       pageCacheRef.current.set(nextCursor, res);
       setItems((prev) => {
         const next = [...prev, ...res.jobs];
@@ -104,7 +153,7 @@ export default function Home() {
     } finally {
       setLoadingNext(false);
     }
-  }, [nextCursor, loadingNext, hasReachedEnd]);
+  }, [nextCursor, loadingNext, hasReachedEnd, domainParam, countryParam]);
 
   const loadPrev = useCallback(async () => {
     if (loadingPrev || hasReachedStart || items.length === 0) return;
@@ -130,7 +179,13 @@ export default function Home() {
     }
     setLoadingPrev(true);
     try {
-      const res = await jobsApi.listJobsCursor({ cursor, dir: "prev", limit: PAGE_SIZE });
+      const res = await jobsApi.listJobsCursor({
+        cursor,
+        dir: "prev",
+        limit: PAGE_SIZE,
+        domain: domainParam,
+        country: countryParam,
+      });
       pageCacheRef.current.set(cursor, res);
       if (res.jobs.length === 0) {
         setHasReachedStart(true);
@@ -153,7 +208,22 @@ export default function Home() {
     } finally {
       setLoadingPrev(false);
     }
-  }, [items, loadingPrev, hasReachedStart, COLS]);
+  }, [items, loadingPrev, hasReachedStart, COLS, domainParam, countryParam]);
+
+  // Reset list state and page cache when filters change (not on initial mount)
+  const isFirstMount = useRef(true);
+  useEffect(() => {
+    if (isFirstMount.current) {
+      isFirstMount.current = false;
+      return;
+    }
+    setItems([]);
+    setNextCursor(null);
+    setHasReachedEnd(false);
+    setHasReachedStart(false);
+    pageCacheRef.current = new LRUCache<string, JobListCursorResponse>(PAGE_CACHE_MAX_PAGES);
+    window.scrollTo(0, 0);
+  }, [domainFilter, countryFilter]); // use raw filter state so changing dropdown resets list
 
   // Sync first page from React Query cache into local state when we have no items yet
   useEffect(() => {
@@ -189,7 +259,7 @@ export default function Home() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
 
-  const virtualItems = virtualizer.getVirtualItems();
+  const virtualItems = virtualizer.getVirtualItems() ?? [];
 
   return (
     <main className="max-w-[90rem] mx-auto px-6 py-10 w-full">
@@ -216,7 +286,43 @@ export default function Home() {
         </Card>
       ) : (
         <section>
-          <h2 className="text-lg font-semibold text-foreground mb-4">Recent jobs</h2>
+          <div className="flex items-center justify-between gap-4 mb-4">
+            <h2 className="text-lg font-semibold text-foreground">Recent jobs</h2>
+            <div className="flex items-center gap-2 shrink-0">
+              <Select
+                value={domainFilter ?? ALL_DOMAINS_VALUE}
+                onValueChange={(v) => setDomainFilter(v === ALL_DOMAINS_VALUE ? null : v)}
+              >
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Domain" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={ALL_DOMAINS_VALUE}>All domains</SelectItem>
+                  {DOMAIN_OPTIONS.map((d) => (
+                    <SelectItem key={d} value={d}>
+                      {d}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select
+                value={countryFilter ?? ALL_COUNTRIES_VALUE}
+                onValueChange={(v) => setCountryFilter(v === ALL_COUNTRIES_VALUE ? null : v)}
+              >
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Country" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={ALL_COUNTRIES_VALUE}>All countries</SelectItem>
+                  {COUNTRY_OPTIONS.map((c) => (
+                    <SelectItem key={c.value} value={c.value}>
+                      {c.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
           {loadingPrev && (
             <div className="flex justify-center py-2 text-muted-foreground text-sm">
               <Loader2 className="w-4 h-4 animate-spin" />
